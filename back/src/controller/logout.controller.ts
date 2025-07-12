@@ -4,6 +4,7 @@ import { errorHelper } from "../utils/errorHelper";
 import { db } from "../db/index";
 import { eq } from "drizzle-orm";
 import { tokens } from "../db/schema";
+import { logoutReqSchema } from "../utils/logoutType";
 
 config();
 
@@ -22,6 +23,12 @@ const logoutController = async (c: Context) => {
 
   if (!oldToken) {
     return c.json(errorHelper.error(400, 'Bad Request'));
+  }
+
+  const validation = logoutReqSchema.safeParse({token: oldToken});
+
+  if (!validation.success) {
+    return c.json(errorHelper.error(400, 'Validation failed'));
   }
   
     await db.delete(tokens).where(eq(tokens.token, oldToken));

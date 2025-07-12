@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
 import { tokens } from "../db/schema";
 import { config } from "dotenv";
+import { refreshReqSchema } from "../utils/refreshtypes";
 config();
 
 const refreshController = async (c: Context) => {
@@ -12,40 +13,41 @@ const refreshController = async (c: Context) => {
   let body;
   try {
     body = await c.req.json();
-  } catch (error) {
-    return c.json(errorHelper.error(400, 'Invalid JSON body'));
-  }
+
 
   if (!body || !body.token) {
     return c.json(errorHelper.error(400, 'Bad Request'));
   }
 
   const oldToken = body.token.split(' ')[1];
-  console.log(oldToken);
   if (!oldToken) {
     return c.json(errorHelper.error(400, 'Bad Request'));
   }
 
+  const validation = refreshReqSchema.safeParse({token: oldToken});
+
+  if (!validation.success) {
+    return c.json(errorHelper.error(400, 'Validation failed'));
+  }
+
   // Verify the refresh token's validity (signature and expiration)
   let decoded;
-  try {
-    decoded = jwt.verify(oldToken, process.env.REFRESH_TOKEN_SECRET!) as jwt.JwtPayload;
-} catch (error : any) {
-    return c.json(errorHelper.error(401, `Invalid token`));
-}
 
-  try {
-    // Fixed: Correct parameter order in eq()
+    decoded = jwt.verify(oldToken, process.env.REFRESH_TOKEN_SECRET!) as jwt.JwtPayload;
+
     const [tableToken] = await db.select().from(tokens).where(eq(tokens.token, oldToken));
     
     if (!tableToken) {
       return c.json(errorHelper.error(401, 'Invalid token'));
     }
+    const user = c.get('user');
+    if (!user) {
+      return c.json(errorHelper.error(401, 'Invalid token'));
+    }
 
-    // Include user/company information from the decoded token
+    // Include user information from the decoded token
     const payload = {
-      company: process.env.COMPANY!,
-
+      isAdmin: user.isAdmin,
     };
 
     const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, {

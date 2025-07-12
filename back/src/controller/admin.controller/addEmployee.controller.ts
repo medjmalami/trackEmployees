@@ -10,12 +10,17 @@ const addEmployeeController = async (c: Context) => {
   let body;
   try {
     body = await c.req.json();
-  } catch (error) {
-    return c.json(errorHelper.error(400, 'Invalid JSON body'));
-  }
+
 
   if (!body) {
     return c.json(errorHelper.error(400, 'Bad Request'));
+  }
+  const user = c.get('user');
+  if (!user) {
+    return c.json(errorHelper.error(401, 'Unauthorized'));
+  }
+  if (!user.isAdmin) {
+    return c.json(errorHelper.error(401, 'Unauthorized'));
   }
 
   const r : AddEmployeeReq = {
@@ -31,7 +36,7 @@ const addEmployeeController = async (c: Context) => {
     return c.json(errorHelper.error(400, validation.error.message));
   }
 
-  try {
+
     const [result] = await db.insert(employees).values({
       name : r.name,
       position : r.position,
@@ -46,7 +51,7 @@ const addEmployeeController = async (c: Context) => {
       message: 'Employee added successfully',
       success: true,
     });
-  } catch (error: any) {
+    }catch (error: any) {
     return c.json(errorHelper.error(500, error.message));
   }
 };
