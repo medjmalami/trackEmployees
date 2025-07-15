@@ -46,8 +46,6 @@ const signController = async (c: Context) => {
       isAdmin = true;
 
 
-
-
     }else if (process.env.CHEF_ADRESS === r.email && process.env.CHEF_PASS === r.password) {
 
       // Generate JWT token

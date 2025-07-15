@@ -11,16 +11,8 @@ const addEmployeeController = async (c: Context) => {
   try {
     body = await c.req.json();
 
-
   if (!body) {
     return c.json(errorHelper.error(400, 'Bad Request'));
-  }
-  const user = c.get('user');
-  if (!user) {
-    return c.json(errorHelper.error(401, 'Unauthorized'));
-  }
-  if (!user.isAdmin) {
-    return c.json(errorHelper.error(401, 'Unauthorized'));
   }
 
   const r : AddEmployeeReq = {
@@ -48,6 +40,11 @@ const addEmployeeController = async (c: Context) => {
 
     return c.json({
       id : result.id,  
+      name : result.name,
+      position : result.position,
+      phone : result.phone,
+      dailySalary : result.dailySalary,
+      attendance : result.attendance,
       message: 'Employee added successfully',
       success: true,
     });

@@ -9,37 +9,29 @@ import { logoutReqSchema } from "../utils/logoutType";
 config();
 
 const logoutController = async (c: Context) => {
-  // Parse the request body using Hono's context
-  let body;
   try {
-    body = await c.req.json();
-  
+    const authHeader = c.req.header('Authorization');
 
-  if (!body || !body.token) {
-    return c.json(errorHelper.error(400, 'Bad Request'));
-  }
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json(errorHelper.error(400, 'Authorization header missing or malformed'));
+    }
 
-  const oldToken = body.token.split(' ')[1];
+    const oldToken = authHeader.split(' ')[1];
 
-  if (!oldToken) {
-    return c.json(errorHelper.error(400, 'Bad Request'));
-  }
+    const validation = logoutReqSchema.safeParse({ token: oldToken });
 
-  const validation = logoutReqSchema.safeParse({token: oldToken});
+    if (!validation.success) {
+      return c.json(errorHelper.error(400, 'Token validation failed'));
+    }
 
-  if (!validation.success) {
-    return c.json(errorHelper.error(400, 'Validation failed'));
-  }
-  
     await db.delete(tokens).where(eq(tokens.token, oldToken));
-    
-    
-    return c.json({ 
-      message: 'Logged out successfully' 
-    }, 200);
-    
+
+    return c.json(
+      { message: 'Logged out successfully' },
+      200
+    );
   } catch (error: any) {
-    return c.json(errorHelper.error(401, `Invalid token`));
+    return c.json(errorHelper.error(401, 'Invalid token'));
   }
 };
 

@@ -1,39 +1,36 @@
-//auth.ts
 import jwt from 'jsonwebtoken';
 import { config } from 'dotenv';
 import type { Context, Next } from 'hono';
 import { errorHelper } from './errorHelper';
-import { authReqSchema, type AuthReq } from './authType';
+import { authReqSchema } from './authType';
 
 config();
 
 export const auth = async (c: Context, next: Next): Promise<Response | void> => {
-    try {
-        const body = await c.req.json();
-        if (!body) {
-          return c.json(errorHelper.error(400, 'Bad Request'));
-        }
-        const token = body.token.split(' ')[1];
+  try {
+    const authHeader = c.req.header('Authorization');
 
-        if (!token) {
-          return c.json(errorHelper.error(401, 'Authentication required'));
-        }
-  
-  
-    const validation = authReqSchema.safeParse({token});
-    if (!validation.success) {
-      return c.json(errorHelper.error(401, 'Validation failed'));
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json(errorHelper.error(401, 'Authorization header missing or malformed'));
     }
+
+    const token = authHeader.split(' ')[1];
+
+    const validation = authReqSchema.safeParse({ token });
+    if (!validation.success) {
+      console.log(validation.error);
+      return c.json(errorHelper.error(401, 'Token validation failed'));
+    }
+
     const decoded = jwt.verify(
       token,
       process.env.ACCESS_TOKEN_SECRET!
     ) as jwt.JwtPayload;
-    
-    c.set('user', decoded);
-    
-    await next();
 
+    c.set('user', decoded);
+
+    await next();
   } catch (error) {
-    return c.json({ error: 'Unauthorized' }, 401);
+    return c.json(errorHelper.error(401, 'Unauthorized'), 401);
   }
 };
