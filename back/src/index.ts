@@ -8,6 +8,7 @@ import { refreshRoutes } from './routes/refresh.routes';
 import { logoutRoutes } from './routes/logout.routes';
 import { adminRoutes } from './routes/admin.routes';
 import { chefRoutes } from './routes/chef.routes';
+import { commonRoutes } from './routes/common.routes';
 
 const app = new Hono();
 
@@ -46,6 +47,7 @@ app.route('/', refreshRoutes);
 app.route('/', logoutRoutes);
 app.route('/', adminRoutes);
 app.route('/', chefRoutes);
+app.route('/', commonRoutes);
 
 // ✅ Start Server (Bun)
 export default {
