@@ -24,6 +24,7 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
     phone: "",
     dailySalary: 0,
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (employee) {
@@ -31,40 +32,60 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
         name: employee.name,
         position: employee.position,
         phone: employee.phone,
-        dailySalary: employee.dailySalary!,
+        dailySalary: employee.dailySalary || 0,
       })
     }
   }, [employee])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
 
-    if( employee) {
+    try {
+      if (employee) {
+        // Edit existing employee
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/editEmployee`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            id: employee.id,
+            ...formData,
+          }),
+        })
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/editEmployee`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(formData),
-      })
-      
+        if (!response.ok) {
+          throw new Error('Failed to update employee')
+        }
 
+        const updatedEmployee = await response.json()
+        onSave(updatedEmployee)
+      } else {
+        // Add new employee
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/addEmployee`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(formData),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to add employee')
+        }
+
+        const newEmployee = await response.json()
+        onSave(newEmployee)
+      }
+    } catch (error) {
+      console.error('Error saving employee:', error)
+      alert('Failed to save employee. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/addEmployee`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(formData),
-    })
-
-    
-
-
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,17 +114,39 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
+              <Input 
+                id="name" 
+                name="name" 
+                value={formData.name} 
+                onChange={handleChange} 
+                required 
+                disabled={isSubmitting}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="position">Position</Label>
-              <Input id="position" name="position" value={formData.position} onChange={handleChange} required />
+              <Input 
+                id="position" 
+                name="position" 
+                value={formData.position} 
+                onChange={handleChange} 
+                required 
+                disabled={isSubmitting}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} required />
+              <Input 
+                id="phone" 
+                name="phone" 
+                type="tel" 
+                value={formData.phone} 
+                onChange={handleChange} 
+                required 
+                disabled={isSubmitting}
+              />
             </div>
 
             <div className="space-y-2">
@@ -117,14 +160,18 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
                 value={formData.dailySalary}
                 onChange={handleChange}
                 required
+                disabled={isSubmitting}
               />
             </div>
 
             <div className="flex space-x-2 pt-4">
-              <Button type="submit" className="flex-1">
-                {employee ? "Update Employee" : "Add Employee"}
+              <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                {isSubmitting 
+                  ? (employee ? "Updating..." : "Adding...") 
+                  : (employee ? "Update Employee" : "Add Employee")
+                }
               </Button>
-              <Button type="button" variant="outline" onClick={onCancel}>
+              <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                 Cancel
               </Button>
             </div>

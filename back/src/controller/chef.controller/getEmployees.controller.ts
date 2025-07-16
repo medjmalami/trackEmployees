@@ -9,6 +9,7 @@ export const getEmployeesController = async (c: Context) => {
             name: employees.name,
             position: employees.position,
             phone: employees.phone,
+            attendance: employees.attendance,
         }).from(employees);
         return c.json(result);
     }catch(error){

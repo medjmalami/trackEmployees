@@ -21,54 +21,69 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [selectedEmployeeHistory, setSelectedEmployeeHistory] = useState<Employee | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const fetchEmployees = async () => {
+    setIsLoading(true)
+    try {
+      const isAdminFromStorage = localStorage.getItem("isAdmin") === "true"
+      const endpoint = isAdminFromStorage ? '/getEmployees/admin' : '/getEmployees'
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch employees')
+      }
+
+      const data = await response.json()
+      setEmployees(data)
+    } catch (error) {
+      console.error('Error fetching employees:', error)
+      alert('Failed to load employees. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const getEmployees = async () => {
-      const isAdmin = localStorage.getItem("isAdmin") === "true"
-      if (isAdmin) {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/getEmployees/admin`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        })
-
-        const data = await response.json()
-        setEmployees(data)
-
-      }else {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/getEmployees`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        })
-
-        const data = await response.json()
-        setEmployees(data)
-      }
-  }
-    getEmployees()
-    
-  }, [])
+    fetchEmployees()
+  }, [accessToken])
 
   const deleteEmployee = async (id: string) => {
     if (!isAdmin) {
       alert("Only administrators can delete employees")
       return
     }
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/removeEmployee`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ id }),
-    })
-    
-    setEmployees(employees.filter((emp) => emp.id !== id))
+
+    if (!confirm("Are you sure you want to delete this employee?")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/removeEmployee`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ id }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete employee')
+      }
+
+      setEmployees(employees.filter((emp) => emp.id !== id))
+    } catch (error) {
+      console.error('Error deleting employee:', error)
+      alert('Failed to delete employee. Please try again.')
+    }
   }
 
   const toggleAttendance = (id: string, date: string) => {
@@ -94,38 +109,71 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
 
-    const daysWorked = Object.keys(employee.attendance!).filter((date) => {
+    const daysWorked = Object.keys(employee.attendance || {}).filter((date) => {
       const workDate = new Date(date)
       return workDate.getMonth() === currentMonth && workDate.getFullYear() === currentYear && employee.attendance![date]
     }).length
 
-    return daysWorked * employee.dailySalary!
+    return daysWorked * (employee.dailySalary || 0)
   }
 
   const getTodayAttendance = (employee: Employee) => {
     const today = new Date().toISOString().split("T")[0]
     if (!employee.attendance) return false
-    if (!employee.attendance[today]) return false
-    return employee.attendance[today]
-
+    return employee.attendance[today] || false
   }
 
-  const handleSaveEmployee = (employee: Omit<Employee, "id">) => {}
+  const handleSaveEmployee = (savedEmployee: Employee | Omit<Employee, "id">) => {
+    if ('id' in savedEmployee) {
+      // Update existing employee
+      setEmployees(employees.map(emp => 
+        emp.id === savedEmployee.id ? savedEmployee : emp
+      ))
+    } else {
+      // Add new employee - the API should return the new employee with ID
+      setEmployees([...employees, savedEmployee as Employee])
+    }
+    
+    setShowForm(false)
+    setEditingEmployee(null)
+    
+    // Refresh the employee list to get the latest data
+    fetchEmployees()
+  }
 
   const totalEmployees = employees.length
   const totalMonthlyPayroll = employees.reduce((sum, emp) => sum + calculateMonthlyPay(emp), 0)
   const presentToday = employees.filter((emp) => getTodayAttendance(emp)).length
 
   const handlePresenceChange = async (id: string, date: string, presence: string) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ id, date, presence }),
-    })
-    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ id, date, presence }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update presence')
+      }
+
+      // Update local state
+      toggleAttendance(id, date)
+    } catch (error) {
+      console.error('Error updating presence:', error)
+      alert('Failed to update attendance. Please try again.')
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
   }
 
   return (
@@ -153,39 +201,41 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        {isAdmin && (<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalEmployees}</div>
-            </CardContent>
-          </Card>
+        {isAdmin && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalEmployees}</div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Present Today</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{presentToday}</div>
-              <p className="text-xs text-muted-foreground">out of {totalEmployees} employees</p>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Present Today</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{presentToday}</div>
+                <p className="text-xs text-muted-foreground">out of {totalEmployees} employees</p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Payroll</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${totalMonthlyPayroll.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">Current month total</p>
-            </CardContent>
-          </Card>
-        </div>)}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Monthly Payroll</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${totalMonthlyPayroll.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Current month total</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Employee List */}
         <Card>
@@ -203,10 +253,11 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                   </Button>
                 )}
                 {isAdmin && (
-                <Button variant="outline" onClick={() => setShowHistory(true)}>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  View History
-                </Button>)}
+                  <Button variant="outline" onClick={() => setShowHistory(true)}>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    View History
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -246,27 +297,29 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                       </div>
 
                       <div className="flex items-center space-x-4">
-                        {isAdmin && (<div className="text-right">
-                          <p className="text-sm font-medium">${employee.dailySalary}/day</p>
-                          <p className="text-sm text-gray-600">Monthly: ${monthlyPay.toFixed(2)}</p>
-                        </div>)}
+                        {isAdmin && (
+                          <div className="text-right">
+                            <p className="text-sm font-medium">${employee.dailySalary}/day</p>
+                            <p className="text-sm text-gray-600">Monthly: ${monthlyPay.toFixed(2)}</p>
+                          </div>
+                        )}
 
                         <Button
                           variant={isPresent ? "default" : "outline"}
                           size="sm"
-                          onClick={() => toggleAttendance(employee.id, today)}
+                          onClick={() => handlePresenceChange(employee.id, today, isPresent ? 'false' : 'true')}
                           className="flex items-center space-x-1"
                         >
                           {isPresent ? (
-                            <div onClick={() => handlePresenceChange(employee.id, today, 'false')}>
+                            <>
                               <CheckCircle className="h-4 w-4" />
                               <span>Present</span>
-                            </div>
+                            </>
                           ) : (
-                            <div onClick={() => handlePresenceChange(employee.id, today, 'true')}>
+                            <>
                               <XCircle className="h-4 w-4" />
                               <span>Absent</span>
-                            </div>
+                            </>
                           )}
                         </Button>
 
@@ -289,17 +342,18 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                             </>
                           )}
                           {isAdmin && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedEmployeeHistory(employee)
-                              setShowHistory(true)
-                            }}
-                            title="View Attendance History"
-                          >
-                            <Calendar className="h-4 w-4" />
-                          </Button>)}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEmployeeHistory(employee)
+                                setShowHistory(true)
+                              }}
+                              title="View Attendance History"
+                            >
+                              <Calendar className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -311,7 +365,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         </Card>
       </main>
 
-      { isAdmin && showHistory && (
+      {isAdmin && showHistory && (
         <AttendanceHistory
           employees={employees}
           selectedEmployee={selectedEmployeeHistory}

@@ -13,6 +13,7 @@ export default function App() {
     // Check if user is already logged in
     const token = localStorage.getItem("accessToken")
     const adminStatus = localStorage.getItem("isAdmin") === "true"
+
     
     if (token) {
       setAccessToken(token)
@@ -37,6 +38,7 @@ export default function App() {
         // Store the token and admin status
         localStorage.setItem("accessToken", data.accessToken)
         localStorage.setItem("isAdmin", data.isAdmin.toString())
+        localStorage.setItem("refreshToken", data.refreshToken)
         
         setAccessToken(data.accessToken)
         setIsAdmin(data.isAdmin)
@@ -53,7 +55,39 @@ export default function App() {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try{
+      const refreshToken = localStorage.getItem("refreshToken")
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${refreshToken}`,
+        },
+      })
+
+      if (response.ok) {
+        localStorage.removeItem("accessToken")
+        localStorage.removeItem("isAdmin")
+        localStorage.removeItem("refreshToken")
+        setAccessToken(null)
+        setIsAdmin(false)
+        setIsAuthenticated(false)
+        return { success: true, message: "Logout successful" }
+      }
+
+    }catch(error){
+      localStorage.removeItem("accessToken")
+      localStorage.removeItem("isAdmin")
+      localStorage.removeItem("refreshToken")
+      setAccessToken(null)
+      setIsAdmin(false)
+      setIsAuthenticated(false)
+      return { success: false, message: "Network error. Please try again." }
+    }
+    
+
+    localStorage.removeItem("refreshToken")
     localStorage.removeItem("accessToken")
     localStorage.removeItem("isAdmin")
     setAccessToken(null)
