@@ -4,16 +4,18 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Users, DollarSign, Calendar, LogOut, Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react"
+import { Users, DollarSign, Calendar, LogOut, Plus, Edit, Trash2, CheckCircle, XCircle, Shield } from "lucide-react"
 import EmployeeForm from "@/components/employee-form"
 import type { Employee } from "@/types/employee"
 import AttendanceHistory from "@/components/attendance-history"
 
 interface DashboardProps {
   onLogout: () => void
+  isAdmin: boolean
+  accessToken: string | null
 }
 
-export default function Dashboard({ onLogout }: DashboardProps) {
+export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardProps) {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
@@ -21,32 +23,50 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const [selectedEmployeeHistory, setSelectedEmployeeHistory] = useState<Employee | null>(null)
 
   useEffect(() => {
-    const savedEmployees = localStorage.getItem("employees")
-    if (savedEmployees) {
-      setEmployees(JSON.parse(savedEmployees))
-    }
+    const getEmployees = async () => {
+      const isAdmin = localStorage.getItem("isAdmin") === "true"
+      if (isAdmin) {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/getEmployees/admin`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        })
+
+        const data = await response.json()
+        setEmployees(data)
+
+      }else {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/getEmployees`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const data = await response.json()
+        setEmployees(data)
+      }
+  }
+    getEmployees()
+    
   }, [])
 
-  useEffect(() => {
-    localStorage.setItem("employees", JSON.stringify(employees))
-  }, [employees])
-
-  const addEmployee = (employee: Omit<Employee, "id">) => {
-    const newEmployee: Employee = {
-      ...employee,
-      id: Date.now().toString(),
+  const deleteEmployee = async (id: string) => {
+    if (!isAdmin) {
+      alert("Only administrators can delete employees")
+      return
     }
-    setEmployees([...employees, newEmployee])
-    setShowForm(false)
-  }
-
-  const updateEmployee = (updatedEmployee: Employee) => {
-    setEmployees(employees.map((emp) => (emp.id === updatedEmployee.id ? updatedEmployee : emp)))
-    setEditingEmployee(null)
-    setShowForm(false)
-  }
-
-  const deleteEmployee = (id: string) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/removeEmployee`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ id }),
+    })
+    
     setEmployees(employees.filter((emp) => emp.id !== id))
   }
 
@@ -84,9 +104,23 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     return employee.attendance[today] || false
   }
 
+  const handleSaveEmployee = (employee: Omit<Employee, "id">) => {}
+
   const totalEmployees = employees.length
   const totalMonthlyPayroll = employees.reduce((sum, emp) => sum + calculateMonthlyPay(emp), 0)
   const presentToday = employees.filter((emp) => getTodayAttendance(emp)).length
+
+  const handlePresenceChange = async (id: string, date: string, presence: string) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ id, date, presence }),
+    })
+    
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -96,6 +130,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             <div className="flex items-center space-x-3">
               <Users className="h-8 w-8 text-blue-600" />
               <h1 className="text-2xl font-bold text-gray-900">Employee Management</h1>
+              {isAdmin && (
+                <div className="flex items-center space-x-1 bg-blue-100 px-2 py-1 rounded-full">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-blue-600 font-medium">Admin</span>
+                </div>
+              )}
             </div>
             <Button variant="outline" onClick={onLogout}>
               <LogOut className="h-4 w-4 mr-2" />
@@ -149,20 +189,28 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 <CardTitle>Employees</CardTitle>
                 <CardDescription>Manage your team and track attendance</CardDescription>
               </div>
-              <Button onClick={() => setShowForm(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Employee
-              </Button>
-              <Button variant="outline" onClick={() => setShowHistory(true)}>
-                <Calendar className="h-4 w-4 mr-2" />
-                View History
-              </Button>
+              <div className="flex space-x-2">
+                {isAdmin && (
+                  <Button onClick={() => setShowForm(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Employee
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setShowHistory(true)}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  View History
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             {employees.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No employees added yet. Click "Add Employee" to get started.
+                {isAdmin ? (
+                  "No employees added yet. Click \"Add Employee\" to get started."
+                ) : (
+                  "No employees found."
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -203,32 +251,36 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                           className="flex items-center space-x-1"
                         >
                           {isPresent ? (
-                            <>
+                            <div onClick={() => handlePresenceChange(employee.id, today, 'false')}>
                               <CheckCircle className="h-4 w-4" />
                               <span>Present</span>
-                            </>
+                            </div>
                           ) : (
-                            <>
+                            <div onClick={() => handlePresenceChange(employee.id, today, 'true')}>
                               <XCircle className="h-4 w-4" />
                               <span>Absent</span>
-                            </>
+                            </div>
                           )}
                         </Button>
 
                         <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingEmployee(employee)
-                              setShowForm(true)
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => deleteEmployee(employee.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {isAdmin && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingEmployee(employee)
+                                  setShowForm(true)
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => deleteEmployee(employee.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -260,6 +312,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             setSelectedEmployeeHistory(null)
           }}
           onUpdateAttendance={(employeeId, date, isPresent) => {
+            if (!isAdmin) return
             setEmployees(
               employees.map((emp) => {
                 if (emp.id === employeeId) {
@@ -278,10 +331,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         />
       )}
 
-      {showForm && (
+      {showForm && isAdmin && (
         <EmployeeForm
+          accessToken={accessToken}
           employee={editingEmployee}
-          onSave={editingEmployee ? updateEmployee : addEmployee}
+          onSave={handleSaveEmployee}
           onCancel={() => {
             setShowForm(false)
             setEditingEmployee(null)

@@ -1,32 +1,46 @@
 "use client"
-
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Building2 } from "lucide-react"
+import { Building2, Loader2 } from "lucide-react"
 
 interface LoginFormProps {
-  onLogin: () => void
+  onLogin: (email: string, password: string) => Promise<{ success: boolean; message: string }>
 }
 
 export default function LoginForm({ onLogin }: LoginFormProps) {
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+    
+    console.log("Form submitted!")
+    console.log("Email:", email)
+    console.log("Password:", password)
+    
+    setError("")
+    setIsLoading(true)
 
-    // Simple authentication - in production, use proper auth
-    if (username === "admin" && password === "admin123") {
-      onLogin()
-    } else {
-      setError("Invalid credentials. Use username: admin, password: admin123")
+    try {
+      console.log("Calling onLogin...")
+      const result = await onLogin(email, password)
+      console.log("onLogin result:", result)
+      if (!result.success) {
+        setError(result.message)
+      }
+    } catch (error) {
+      console.error("Login error:", error)
+      setError("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -41,15 +55,17 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <CardDescription>Sign in to manage your employees</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form  className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
+                placeholder="Enter your email"
               />
             </div>
             <div className="space-y-2">
@@ -60,6 +76,8 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
+                placeholder="Enter your password"
               />
             </div>
             {error && (
@@ -67,17 +85,17 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button onClick={handleSubmit} type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
-            <p>
-              <strong>Demo Credentials:</strong>
-            </p>
-            <p>Username: admin</p>
-            <p>Password: admin123</p>
-          </div>
         </CardContent>
       </Card>
     </div>

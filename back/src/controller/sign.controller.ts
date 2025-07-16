@@ -45,6 +45,8 @@ const signController = async (c: Context) => {
 
       isAdmin = true;
 
+      
+
 
     }else if (process.env.CHEF_ADRESS === r.email && process.env.CHEF_PASS === r.password) {
 
@@ -61,12 +63,10 @@ const signController = async (c: Context) => {
     }else {
       return c.json(errorHelper.error(401, 'Invalid credentials'));
     }
-    await db.insert(tokens).values({
-      token: refreshToken,
-    });
+    
     return c.json({
-      accesstoken: accessToken,
-      refreshtoken: refreshToken,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
       message: 'Signed in successfully',
       success: true,
       isAdmin

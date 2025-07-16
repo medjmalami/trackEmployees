@@ -14,9 +14,10 @@ interface EmployeeFormProps {
   employee?: Employee | null
   onSave: (employee: Employee | Omit<Employee, "id">) => void
   onCancel: () => void
+  accessToken: string | null
 }
 
-export default function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) {
+export default function EmployeeForm({ employee, onSave, onCancel, accessToken }: EmployeeFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     position: "",
@@ -35,20 +36,35 @@ export default function EmployeeForm({ employee, onSave, onCancel }: EmployeeFor
     }
   }, [employee])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (employee) {
-      onSave({
-        ...employee,
-        ...formData,
+    if( employee) {
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/editEmployee`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(formData),
       })
-    } else {
-      onSave({
-        ...formData,
-        attendance: {},
-      })
+      
+
     }
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/addEmployee`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(formData),
+    })
+
+    
+
+
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

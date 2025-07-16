@@ -4,7 +4,7 @@ import type { ChangePresence } from "../utils/changePresenceTypes";
 import { errorHelper } from "../utils/errorHelper";
 import { db } from "../db";
 import { employees } from "../db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const changePresenceController = async (c: Context) => {
   try {
