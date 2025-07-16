@@ -1,44 +1,28 @@
 "use client"
+
 import { useState, useEffect } from "react"
-import LoginForm from "@/components/login-form"
 import Dashboard from "@/components/dashboard"
+import LoginForm from "@/components/login-form"
 
-interface AuthState {
-  isAuthenticated: boolean
-  accessToken: string | null
-  refreshToken: string | null
-  isAdmin: boolean
-}
-
-export default function Home() {
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    accessToken: null,
-    refreshToken: null,
-    isAdmin: false
-  })
-  const [isLoading, setIsLoading] = useState(true)
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check if user is already authenticated on page load
-    const accessToken = localStorage.getItem("accessToken")
-    const refreshToken = localStorage.getItem("refreshToken")
-    const isAdmin = localStorage.getItem("isAdmin") === "true"
+    // Check if user is already logged in
+    const token = localStorage.getItem("accessToken")
+    const adminStatus = localStorage.getItem("isAdmin") === "true"
     
-    if (accessToken && refreshToken) {
-      setAuthState({
-        isAuthenticated: true,
-        accessToken,
-        refreshToken,
-        isAdmin
-      })
+    if (token) {
+      setAccessToken(token)
+      setIsAdmin(adminStatus)
+      setIsAuthenticated(true)
     }
-    setIsLoading(false)
   }, [])
 
   const handleLogin = async (email: string, password: string) => {
     try {
-
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/signin`, {
         method: 'POST',
         headers: {
@@ -47,85 +31,45 @@ export default function Home() {
         body: JSON.stringify({ email, password }),
       })
 
-      const data = await response.json()
-
-      console.log(data)
-
-      if (data.success) {
-        // Store tokens and user info
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Store the token and admin status
         localStorage.setItem("accessToken", data.accessToken)
-        localStorage.setItem("refreshToken", data.refreshToken)
         localStorage.setItem("isAdmin", data.isAdmin.toString())
-
-        setAuthState({
-          isAuthenticated: true,
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
-          isAdmin: data.isAdmin
-        })
-
-        return { success: true, message: data.message }
+        
+        setAccessToken(data.accessToken)
+        setIsAdmin(data.isAdmin)
+        setIsAuthenticated(true)
+        
+        return { success: true, message: "Login successful" }
       } else {
-        return { success: false, message: data.message }
+        const errorData = await response.json()
+        return { success: false, message: errorData.message || "Login failed" }
       }
     } catch (error) {
+      console.error("Login error:", error)
       return { success: false, message: "Network error. Please try again." }
     }
   }
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/logout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authState.refreshToken}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      const data = await response.json()
-      console.log(data.message) // Log the logout message
-
-      // Clear local storage and reset auth state regardless of API response
-      localStorage.removeItem("accessToken")
-      localStorage.removeItem("refreshToken")
-      localStorage.removeItem("isAdmin")
-
-      setAuthState({
-        isAuthenticated: false,
-        accessToken: null,
-        refreshToken: null,
-        isAdmin: false
-      })
-    } catch (error) {
-      console.error("Logout error:", error)
-      // Still clear local storage even if API call fails
-      localStorage.removeItem("accessToken")
-      localStorage.removeItem("refreshToken")
-      localStorage.removeItem("isAdmin")
-
-      setAuthState({
-        isAuthenticated: false,
-        accessToken: null,
-        refreshToken: null,
-        isAdmin: false
-      })
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken")
+    localStorage.removeItem("isAdmin")
+    setAccessToken(null)
+    setIsAdmin(false)
+    setIsAuthenticated(false)
   }
 
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
-
-  if (!authState.isAuthenticated) {
+  if (!isAuthenticated) {
     return <LoginForm onLogin={handleLogin} />
   }
 
   return (
-    <Dashboard 
-      onLogout={handleLogout} 
-      isAdmin={authState.isAdmin}
-      accessToken={authState.accessToken}
+    <Dashboard
+      onLogout={handleLogout}
+      isAdmin={isAdmin}
+      accessToken={accessToken}
     />
   )
 }

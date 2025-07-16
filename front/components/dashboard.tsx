@@ -42,6 +42,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
           },
         })
 
@@ -88,20 +89,25 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
   }
 
   const calculateMonthlyPay = (employee: Employee) => {
+    if (!isAdmin) return 0
+
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
 
-    const daysWorked = Object.keys(employee.attendance).filter((date) => {
+    const daysWorked = Object.keys(employee.attendance!).filter((date) => {
       const workDate = new Date(date)
-      return workDate.getMonth() === currentMonth && workDate.getFullYear() === currentYear && employee.attendance[date]
+      return workDate.getMonth() === currentMonth && workDate.getFullYear() === currentYear && employee.attendance![date]
     }).length
 
-    return daysWorked * employee.dailySalary
+    return daysWorked * employee.dailySalary!
   }
 
   const getTodayAttendance = (employee: Employee) => {
     const today = new Date().toISOString().split("T")[0]
-    return employee.attendance[today] || false
+    if (!employee.attendance) return false
+    if (!employee.attendance[today]) return false
+    return employee.attendance[today]
+
   }
 
   const handleSaveEmployee = (employee: Omit<Employee, "id">) => {}
@@ -147,7 +153,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {isAdmin && (<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
@@ -179,7 +185,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
               <p className="text-xs text-muted-foreground">Current month total</p>
             </CardContent>
           </Card>
-        </div>
+        </div>)}
 
         {/* Employee List */}
         <Card>
@@ -196,10 +202,11 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                     Add Employee
                   </Button>
                 )}
+                {isAdmin && (
                 <Button variant="outline" onClick={() => setShowHistory(true)}>
                   <Calendar className="h-4 w-4 mr-2" />
                   View History
-                </Button>
+                </Button>)}
               </div>
             </div>
           </CardHeader>
@@ -239,10 +246,10 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                       </div>
 
                       <div className="flex items-center space-x-4">
-                        <div className="text-right">
+                        {isAdmin && (<div className="text-right">
                           <p className="text-sm font-medium">${employee.dailySalary}/day</p>
                           <p className="text-sm text-gray-600">Monthly: ${monthlyPay.toFixed(2)}</p>
-                        </div>
+                        </div>)}
 
                         <Button
                           variant={isPresent ? "default" : "outline"}
@@ -281,6 +288,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                               </Button>
                             </>
                           )}
+                          {isAdmin && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -291,7 +299,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                             title="View Attendance History"
                           >
                             <Calendar className="h-4 w-4" />
-                          </Button>
+                          </Button>)}
                         </div>
                       </div>
                     </div>
@@ -303,7 +311,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         </Card>
       </main>
 
-      {showHistory && (
+      { isAdmin && showHistory && (
         <AttendanceHistory
           employees={employees}
           selectedEmployee={selectedEmployeeHistory}

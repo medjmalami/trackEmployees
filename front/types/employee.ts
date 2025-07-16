@@ -3,6 +3,6 @@ export interface Employee {
   name: string
   position: string
   phone: string
-  dailySalary: number
-  attendance: Record<string, boolean> // date -> present/absent
+  dailySalary?: number
+  attendance?: Record<string, boolean> // date -> present/absent
 }

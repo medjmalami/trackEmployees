@@ -31,7 +31,7 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
         name: employee.name,
         position: employee.position,
         phone: employee.phone,
-        dailySalary: employee.dailySalary,
+        dailySalary: employee.dailySalary!,
       })
     }
   }, [employee])
