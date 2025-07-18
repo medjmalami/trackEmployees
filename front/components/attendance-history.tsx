@@ -48,30 +48,75 @@ export default function AttendanceHistory({
   }
 
   const formatDate = (date: Date) => {
-    return date.toISOString().split("T")[0]
+    // Use local date formatting to avoid timezone issues
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   const isPresent = (employee: Employee, date: Date) => {
     const dateStr = formatDate(date)
-    return employee.attendance[dateStr] || false
+    return employee.attendance![dateStr] || false
   }
 
-  const toggleAttendance = (employee: Employee, date: Date) => {
+  const toggleAttendance = async (employee: Employee, date: Date) => {
     const dateStr = formatDate(date)
     const currentStatus = isPresent(employee, date)
-    onUpdateAttendance(employee.id, dateStr, !currentStatus)
+    const newStatus = !currentStatus
+    const accessToken = localStorage.getItem("accessToken")
+  
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          id: employee.id,
+          date: dateStr,
+          presence: newStatus,
+        }),
+      })
+  
+      if (!response.ok) {
+        throw new Error("Failed to update attendance")
+      }
+  
+      // Call parent update
+      onUpdateAttendance(employee.id, dateStr, newStatus)
+  
+      // ✅ Update local state to reflect change immediately
+      setViewEmployee((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          attendance: {
+            ...prev.attendance,
+            [dateStr]: newStatus,
+          },
+        }
+      })
+    } catch (error) {
+      console.error("Error updating attendance:", error)
+      alert("Failed to update attendance. Please try again.")
+    }
   }
+  
 
   const getMonthlyStats = (employee: Employee, date: Date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
 
-    const daysWorked = Object.keys(employee.attendance).filter((dateStr) => {
-      const workDate = new Date(dateStr)
-      return workDate.getFullYear() === year && workDate.getMonth() === month && employee.attendance[dateStr]
+    const daysWorked = Object.keys(employee.attendance!).filter((dateStr) => {
+      // Parse the date string properly to avoid timezone issues
+      const [yearStr, monthStr, dayStr] = dateStr.split('-')
+      const workDate = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr))
+      return workDate.getFullYear() === year && workDate.getMonth() === month && employee.attendance![dateStr]
     }).length
 
-    const monthlyPay = daysWorked * employee.dailySalary
+    const monthlyPay = daysWorked * employee.dailySalary!
 
     return { daysWorked, monthlyPay }
   }

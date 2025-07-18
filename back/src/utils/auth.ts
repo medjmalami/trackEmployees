@@ -31,6 +31,7 @@ export const auth = async (c: Context, next: Next): Promise<Response | void> => 
 
     await next();
   } catch (error) {
+    console.log(error);
     return c.json(errorHelper.error(401, 'Unauthorized'), 401);
   }
 };
