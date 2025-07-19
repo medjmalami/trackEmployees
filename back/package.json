@@ -11,7 +11,7 @@
     "typescript": "^5.0.0"
   },
   "scripts": {
-    "start": "bun run index.ts",
+    "start": "bun run src/index.ts",
     "dev": "bun --watch run src/index.ts ",
     "db-reset": "sh ./db-reset.sh",
     "db-migrate": "bun run drizzle-kit migrate",

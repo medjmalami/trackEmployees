@@ -52,11 +52,14 @@ const signController = async (c: Context) => {
 
       // Generate JWT token
       accessToken = jwt.sign({ isAdmin: false }, process.env.ACCESS_TOKEN_SECRET!, {
-        expiresIn: '1h',
+        expiresIn: 10,
       });
       refreshToken = jwt.sign({ isAdmin: false }, process.env.REFRESH_TOKEN_SECRET!, {
-        expiresIn: '7d',
+        expiresIn: 30,
       });
+
+      const decoded = jwt.decode(accessToken);
+      console.log(decoded);
 
 
 

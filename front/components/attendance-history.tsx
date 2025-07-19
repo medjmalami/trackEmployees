@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { X, ChevronLeft, ChevronRight, CheckCircle, XCircle, Calendar, DollarSign } from "lucide-react"
 import type { Employee } from "@/types/employee"
+import { authFetch } from "@/utils/authFetch"
 
 interface AttendanceHistoryProps {
   employees: Employee[]
@@ -67,7 +68,7 @@ export default function AttendanceHistory({
     const accessToken = localStorage.getItem("accessToken")
   
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
+      const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -80,7 +81,7 @@ export default function AttendanceHistory({
         }),
       })
   
-      if (!response.ok) {
+      if (!response!.ok) {
         throw new Error("Failed to update attendance")
       }
   
@@ -236,8 +237,8 @@ export default function AttendanceHistory({
                 </div>
                 <div className="text-right">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <DollarSign className="h-4 w-4" />
-                    <span>${viewEmployee.dailySalary}/day</span>
+                    <span className="h-4 w-4 text-xs font-semibold flex items-center justify-center">TND</span>
+                    <span>{viewEmployee.dailySalary}/day</span>
                   </div>
                   {(() => {
                     const stats = getMonthlyStats(viewEmployee, currentDate)
@@ -245,7 +246,7 @@ export default function AttendanceHistory({
                       <div className="mt-1">
                         <p className="text-sm font-medium">Days worked: {stats.daysWorked}</p>
                         <p className="text-sm font-medium text-green-600">
-                          Monthly pay: ${stats.monthlyPay.toFixed(2)}
+                          Monthly pay: TND {stats.monthlyPay.toFixed(2)}
                         </p>
                       </div>
                     )
@@ -335,7 +336,7 @@ export default function AttendanceHistory({
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <p className="text-sm font-medium">{stats.daysWorked} days worked</p>
-                            <p className="text-sm text-green-600">${stats.monthlyPay.toFixed(2)}</p>
+                            <p className="text-sm text-green-600">TND{stats.monthlyPay.toFixed(2)}</p>
                           </div>
 
                           <Button variant="outline" size="sm" onClick={() => setViewEmployee(employee)}>
@@ -362,7 +363,7 @@ export default function AttendanceHistory({
                     <div>
                       <span className="text-blue-700">Total Payroll: </span>
                       <span className="font-medium">
-                        $
+                      TND
                         {employees
                           .reduce((sum, emp) => sum + getMonthlyStats(emp, currentDate).monthlyPay, 0)
                           .toFixed(2)}

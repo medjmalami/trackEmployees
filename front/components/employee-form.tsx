@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { X } from "lucide-react"
 import type { Employee } from "@/types/employee"
+import { authFetch } from "@/utils/authFetch"
 
 interface EmployeeFormProps {
   employee?: Employee | null
@@ -44,7 +45,7 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
     try {
       if (employee) {
         // Edit existing employee
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/editEmployee`, {
+        const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/editEmployee`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -56,15 +57,15 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
           }),
         })
 
-        if (!response.ok) {
+        if (!response!.ok) {
           throw new Error('Failed to update employee')
         }
 
-        const updatedEmployee = await response.json()
+        const updatedEmployee = await response!.json()
         onSave(updatedEmployee)
       } else {
         // Add new employee
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/addEmployee`, {
+        const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/addEmployee`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -73,11 +74,11 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
           body: JSON.stringify(formData),
         })
 
-        if (!response.ok) {
+        if (!response!.ok) {
           throw new Error('Failed to add employee')
         }
 
-        const newEmployee = await response.json()
+        const newEmployee = await response!.json()
         onSave(newEmployee)
       }
     } catch (error) {

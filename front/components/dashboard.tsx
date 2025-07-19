@@ -4,10 +4,11 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Users, DollarSign, Calendar, LogOut, Plus, Edit, Trash2, CheckCircle, XCircle, Shield } from "lucide-react"
+import { Users, Calendar, LogOut, Plus, Edit, Trash2, CheckCircle, XCircle, Shield } from "lucide-react"
 import EmployeeForm from "@/components/employee-form"
 import type { Employee } from "@/types/employee"
 import AttendanceHistory from "@/components/attendance-history"
+import { authFetch } from "@/utils/authFetch"
 
 interface DashboardProps {
   onLogout: () => void
@@ -29,7 +30,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       const isAdminFromStorage = localStorage.getItem("isAdmin") === "true"
       const endpoint = isAdminFromStorage ? '/getEmployees/admin' : '/getEmployees'
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${endpoint}`, {
+      const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${endpoint}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -37,11 +38,11 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         },
       })
 
-      if (!response.ok) {
+      if (!response!.ok) {
         throw new Error('Failed to fetch employees')
       }
 
-      const data = await response.json()
+      const data = await response!.json()
       setEmployees(data)
     } catch (error) {
       console.error('Error fetching employees:', error)
@@ -66,7 +67,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/removeEmployee`, {
+      const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/removeEmployee`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +76,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         body: JSON.stringify({ id }),
       })
 
-      if (!response.ok) {
+      if (!response!.ok) {
         throw new Error('Failed to delete employee')
       }
 
@@ -147,7 +148,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
 
   const handlePresenceChange = async (id: string, date: string, presence: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
+      const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +157,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         body: JSON.stringify({ id, date, presence }),
       })
 
-      if (!response.ok) {
+      if (!response!.ok) {
         throw new Error('Failed to update presence')
       }
 
@@ -227,10 +228,10 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Monthly Payroll</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <span className="h-4 w-4 text-xs font-semibold flex items-center justify-center">TND</span>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${totalMonthlyPayroll.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{totalMonthlyPayroll.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">Current month total</p>
               </CardContent>
             </Card>
@@ -299,8 +300,8 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                       <div className="flex items-center space-x-4">
                         {isAdmin && (
                           <div className="text-right">
-                            <p className="text-sm font-medium">${employee.dailySalary}/day</p>
-                            <p className="text-sm text-gray-600">Monthly: ${monthlyPay.toFixed(2)}</p>
+                            <p className="text-sm font-medium">TND {employee.dailySalary}/day</p>
+                            <p className="text-sm text-gray-600">Monthly: TND {monthlyPay.toFixed(2)}</p>
                           </div>
                         )}
 
