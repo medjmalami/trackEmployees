@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Users, Calendar, LogOut, Plus, Edit, Trash2, CheckCircle, XCircle, Shield, Menu } from "lucide-react"
+import { Users, Calendar, LogOut, Plus, Edit, Trash2, CheckCircle, XCircle, Shield } from "lucide-react"
 import EmployeeForm from "@/components/employee-form"
 import type { Employee } from "@/types/employee"
 import AttendanceHistory from "@/components/attendance-history"
@@ -23,7 +23,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
   const [showHistory, setShowHistory] = useState(false)
   const [selectedEmployeeHistory, setSelectedEmployeeHistory] = useState<Employee | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   const fetchEmployees = async () => {
     setIsLoading(true)
@@ -172,7 +171,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-lg">Loading...</div>
       </div>
     )
@@ -183,61 +182,28 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">
-                  Employee Management
-                </h1>
-                {isAdmin && (
-                  <div className="flex items-center space-x-1 bg-blue-100 px-2 py-1 rounded-full mt-1 sm:mt-0 w-fit">
-                    <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-                    <span className="text-xs sm:text-sm text-blue-600 font-medium">Admin</span>
-                  </div>
-                )}
-              </div>
+            <div className="flex items-center space-x-3">
+              <Users className="h-8 w-8 text-blue-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Employee Management</h1>
+              {isAdmin && (
+                <div className="flex items-center space-x-1 bg-blue-100 px-2 py-1 rounded-full">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-blue-600 font-medium">Admin</span>
+                </div>
+              )}
             </div>
-            
-            {/* Mobile menu button */}
-            <div className="sm:hidden">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {/* Desktop logout button */}
-            <div className="hidden sm:block">
-              <Button variant="outline" onClick={onLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
+            <Button variant="outline" onClick={onLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           </div>
-          
-          {/* Mobile menu */}
-          {showMobileMenu && (
-            <div className="sm:hidden border-t py-2">
-              <Button 
-                variant="outline" 
-                onClick={onLogout}
-                className="w-full"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          )}
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         {isAdmin && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
@@ -259,7 +225,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
               </CardContent>
             </Card>
 
-            <Card className="sm:col-span-2 lg:col-span-1">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Monthly Payroll</CardTitle>
                 <span className="h-4 w-4 text-xs font-semibold flex items-center justify-center">TND</span>
@@ -275,32 +241,28 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         {/* Employee List */}
         <Card>
           <CardHeader>
-            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+            <div className="flex justify-between items-center">
               <div>
-                <CardTitle className="text-lg sm:text-xl">Employees</CardTitle>
-                <CardDescription className="text-sm">Manage your team and track attendance</CardDescription>
+                <CardTitle>Employees</CardTitle>
+                <CardDescription>Manage your team and track attendance</CardDescription>
               </div>
-              <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+              <div className="flex space-x-2">
                 {isAdmin && (
-                  <>
-                    <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Employee
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowHistory(true)}
-                      className="w-full sm:w-auto"
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      View History
-                    </Button>
-                  </>
+                  <Button onClick={() => setShowForm(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Employee
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button variant="outline" onClick={() => setShowHistory(true)}>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    View History
+                  </Button>
                 )}
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6">
+          <CardContent>
             {employees.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 {isAdmin ? (
@@ -317,11 +279,10 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                   const today = new Date().toISOString().split("T")[0]
 
                   return (
-                    <div key={employee.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg bg-white space-y-4 sm:space-y-0">
-                      {/* Employee Info */}
-                      <div className="flex items-center space-x-3 sm:space-x-4">
-                        <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
-                          <AvatarFallback className="text-sm sm:text-base">
+                    <div key={employee.id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
+                      <div className="flex items-center space-x-4">
+                        <Avatar>
+                          <AvatarFallback>
                             {employee.name
                               .split(" ")
                               .map((n) => n[0])
@@ -329,82 +290,71 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                               .toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-semibold text-sm sm:text-base truncate">{employee.name}</h3>
-                          <p className="text-xs sm:text-sm text-gray-600 truncate">{employee.position}</p>
-                          <p className="text-xs sm:text-sm text-gray-500 truncate">{employee.phone}</p>
+                        <div>
+                          <h3 className="font-semibold">{employee.name}</h3>
+                          <p className="text-sm text-gray-600">{employee.position}</p>
+                          <p className="text-sm text-gray-500">{employee.phone}</p>
                         </div>
                       </div>
 
-                      {/* Actions and Info */}
-                      <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                        {/* Salary Info */}
+                      <div className="flex items-center space-x-4">
                         {isAdmin && (
-                          <div className="text-left sm:text-right">
-                            <p className="text-xs sm:text-sm font-medium">TND {employee.dailySalary}/day</p>
-                            <p className="text-xs sm:text-sm text-gray-600">Monthly: TND {monthlyPay.toFixed(2)}</p>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">TND {employee.dailySalary}/day</p>
+                            <p className="text-sm text-gray-600">Monthly: TND {monthlyPay.toFixed(2)}</p>
                           </div>
                         )}
 
-                        {/* Attendance Button */}
-                        <div className="flex items-center justify-between sm:justify-end space-x-2">
-                          <Button
-                            variant={isPresent ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handlePresenceChange(employee.id, today, isPresent ? 'false' : 'true')}
-                            className="flex items-center space-x-1 flex-1 sm:flex-none"
-                          >
-                            {isPresent ? (
-                              <>
-                                <CheckCircle className="h-4 w-4" />
-                                <span className="text-xs sm:text-sm">Present</span>
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-4 w-4" />
-                                <span className="text-xs sm:text-sm">Absent</span>
-                              </>
-                            )}
-                          </Button>
+                        <Button
+                          variant={isPresent ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePresenceChange(employee.id, today, isPresent ? 'false' : 'true')}
+                          className="flex items-center space-x-1"
+                        >
+                          {isPresent ? (
+                            <>
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Present</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-4 w-4" />
+                              <span>Absent</span>
+                            </>
+                          )}
+                        </Button>
 
-                          {/* Action Buttons */}
-                          <div className="flex space-x-1 sm:space-x-2">
-                            {isAdmin && (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingEmployee(employee)
-                                    setShowForm(true)
-                                  }}
-                                  className="px-2"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => deleteEmployee(employee.id)}
-                                  className="px-2"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedEmployeeHistory(employee)
-                                    setShowHistory(true)
-                                  }}
-                                  title="View Attendance History"
-                                  className="px-2"
-                                >
-                                  <Calendar className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
+                        <div className="flex space-x-2">
+                          {isAdmin && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingEmployee(employee)
+                                  setShowForm(true)
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => deleteEmployee(employee.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          {isAdmin && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEmployeeHistory(employee)
+                                setShowHistory(true)
+                              }}
+                              title="View Attendance History"
+                            >
+                              <Calendar className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -457,4 +407,4 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       )}
     </div>
   )
-      }
+}
