@@ -21,11 +21,8 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    
     setError("")
     setIsLoading(true)
-
     try {
       console.log("Calling onLogin...")
       const result = await onLogin(email, password)
@@ -82,7 +79,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -91,7 +88,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
               ) : (
                 "Sign In"
               )}
-            </Button>
+            </button>
           </form>
         </CardContent>
       </Card>
