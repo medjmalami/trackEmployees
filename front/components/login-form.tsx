@@ -49,7 +49,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <CardDescription>Sign in to manage your employees</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form  className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -79,7 +79,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded" disabled={isLoading}>
+            <Button onClick={handleSubmit} type="submit" className="w-full bg-blue-600 text-white p-2 rounded" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -88,7 +88,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
               ) : (
                 "Sign In"
               )}
-            </button>
+            </Button>
           </form>
         </CardContent>
       </Card>
