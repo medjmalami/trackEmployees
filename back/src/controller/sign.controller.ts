@@ -37,10 +37,10 @@ const signController = async (c: Context) => {
 
       // Generate JWT token
       accessToken = jwt.sign({ isAdmin: true }, process.env.ACCESS_TOKEN_SECRET!, {
-        expiresIn: '1h',
+        expiresIn: '10s',
       });
       refreshToken = jwt.sign({ isAdmin: true }, process.env.REFRESH_TOKEN_SECRET!, {
-        expiresIn: '7d',
+        expiresIn: '1m',
       });
 
       isAdmin = true;

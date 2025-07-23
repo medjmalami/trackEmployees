@@ -56,13 +56,15 @@ export default function DashboardPage() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     clearAuthData()
+    window.location.href = "/login";
     
-    return response;
+    return ;
   } catch (error) {
     // Clear tokens even if request fails
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     clearAuthData()
+    window.location.href = "/login";
     console.error('Logout error:', error);
   }
 };

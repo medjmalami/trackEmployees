@@ -42,11 +42,11 @@ const refreshController = async (c: Context) => {
     };
 
     const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, {
-      expiresIn: '1h',
+      expiresIn: '10s',
     });
 
     const newRefreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, {
-      expiresIn: '7d',
+      expiresIn: '1m',
     });
 
     // Replace old refresh token in DB
