@@ -22,9 +22,6 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     e.preventDefault()
     e.stopPropagation()
     
-    console.log("Form submitted!")
-    console.log("Email:", email)
-    console.log("Password:", password)
     
     setError("")
     setIsLoading(true)
@@ -55,7 +52,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <CardDescription>Sign in to manage your employees</CardDescription>
         </CardHeader>
         <CardContent>
-          <form  className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -85,7 +82,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <Button onClick={handleSubmit} type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
