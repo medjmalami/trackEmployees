@@ -23,8 +23,9 @@ export default function LoginPage() {
 
   const handleLogin = async (email: string, password: string) => {
     try {
-      const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/signin`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/signin`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },  // important!
         body: JSON.stringify({ email, password }),
       })
 

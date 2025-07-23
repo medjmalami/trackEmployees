@@ -79,7 +79,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <Button onClick={handleSubmit} type="submit" className="w-full bg-blue-600 text-white p-2 rounded" disabled={isLoading}>
+            <Button onClick={handleSubmit} type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
