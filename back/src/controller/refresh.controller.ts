@@ -56,11 +56,11 @@ const refreshController = async (c: Context) => {
       .where(eq(tokens.token, oldToken));
 
     return c.json({
-      accesstoken: newAccessToken,
-      refreshtoken: newRefreshToken,
+      accessToken: newAccessToken,  // Changed to camelCase
+      refreshToken: newRefreshToken, // Changed to camelCase
       message: "Refreshed successfully",
       success: true,
-    });
+      });
   } catch (error) {
     console.error('Refresh token error:', error);
     return c.json(errorHelper.error(500, 'Internal Server Error'));

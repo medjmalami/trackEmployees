@@ -33,10 +33,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       
       const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${endpoint}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
       })
 
       if (!response!.ok) {
@@ -71,10 +67,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
     try {
       const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/removeEmployee`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
         body: JSON.stringify({ id }),
       })
 
@@ -171,10 +163,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
     try {
       const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
         body: JSON.stringify({ id, date, presence }),
       })
 

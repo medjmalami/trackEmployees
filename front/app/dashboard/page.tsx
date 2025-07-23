@@ -34,33 +34,39 @@ export default function DashboardPage() {
   }, [router])
 
   const handleLogout = async () => {
-    try {
-      const refreshToken = localStorage.getItem("refreshToken")
-      
-      if (refreshToken) {
-        const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/logout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${refreshToken}`,
-          },
-        })
-
-        if (response!.ok) {
-          clearAuthData()
-          router.replace("/login")
-          return { success: true, message: "Logout successful" }
-        }
-      }
-    } catch (error) {
-      console.error("Logout error:", error)
-    }
-    
-    // Clear auth data regardless of API call result
-    clearAuthData()
-    router.replace("/login")
-    return { success: false, message: "Logged out locally" }
+    const refreshToken = localStorage.getItem("refreshToken");
+  
+  if (!refreshToken) {
+    // No refresh token, just clear storage and redirect
+    localStorage.removeItem("accessToken");
+    window.location.href = "/login";
+    return;
   }
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${refreshToken}`, // Use refresh token for logout
+      },
+    });
+
+    // Clear tokens regardless of response
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    clearAuthData()
+    
+    return response;
+  } catch (error) {
+    // Clear tokens even if request fails
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    clearAuthData()
+    console.error('Logout error:', error);
+  }
+};
+
 
   const clearAuthData = () => {
     localStorage.removeItem("accessToken")

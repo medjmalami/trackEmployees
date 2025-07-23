@@ -1,20 +1,28 @@
 export const tryRefreshToken = async () => {
-    const refreshToken = localStorage.getItem("refreshToken");
-  
-    if (!refreshToken) return false;
-  
+  const refreshToken = localStorage.getItem("refreshToken");
+  if (!refreshToken) return false;
+
+  try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${refreshToken}` },
+      headers: { 
+        "Content-Type": "application/json", 
+        Authorization: `Bearer ${refreshToken}` 
+      },
     });
-  
+
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem("accessToken", data.accessToken); // Save new token
-      localStorage.setItem("refreshToken", data.refreshToken); // Save new refresh token
+      
+      // Now using camelCase property names from fixed refresh controller
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+      
       return true;
     }
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+  }
   
-    return false; // Refresh failed
-  };
-  
+  return false;
+};

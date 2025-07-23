@@ -47,10 +47,6 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
         // Edit existing employee
         const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/editEmployee`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
           body: JSON.stringify({
             id: employee.id,
             ...formData,
@@ -67,10 +63,6 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
         // Add new employee
         const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/addEmployee`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
           body: JSON.stringify(formData),
         })
 

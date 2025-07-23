@@ -70,10 +70,6 @@ export default function AttendanceHistory({
     try {
       const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
         body: JSON.stringify({
           id: employee.id,
           date: dateStr,
