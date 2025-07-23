@@ -49,11 +49,11 @@ const refreshController = async (c: Context) => {
     };
 
     const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, {
-      expiresIn: "10s",
+      expiresIn: "1h",
     });
 
     const newRefreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, {
-      expiresIn: "1m",
+      expiresIn: "7d",
     });
 
     await db

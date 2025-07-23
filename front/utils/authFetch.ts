@@ -7,6 +7,7 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
   if (!accessToken) {
     // No access token, redirect to login
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("isAdmin");
     window.location.href = "/login";
     return;
   }
@@ -49,6 +50,7 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
           // Refresh failed
           localStorage.removeItem("accessToken");
           localStorage.removeItem("refreshToken");
+          localStorage.removeItem("isAdmin");
           window.location.href = "/login";
           return;
         }
@@ -73,6 +75,7 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
     } else {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("isAdmin");
       window.location.href = "/login";
       return;
     }

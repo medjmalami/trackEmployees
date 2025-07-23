@@ -55,6 +55,7 @@ export default function DashboardPage() {
     // Clear tokens regardless of response
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("isAdmin");
     clearAuthData()
     window.location.href = "/login";
     
@@ -63,6 +64,7 @@ export default function DashboardPage() {
     // Clear tokens even if request fails
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("isAdmin");
     clearAuthData()
     window.location.href = "/login";
     console.error('Logout error:', error);
