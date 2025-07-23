@@ -36,14 +36,12 @@ const signController = async (c: Context) => {
     if (process.env.ADMIN_ADRESS === r.email && process.env.ADMIN_PASS === r.password) {
 
       // Generate JWT token
-      refreshToken = jwt.sign({ 
-        isAdmin: true,
-        exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour in seconds
-      }, process.env.REFRESH_TOKEN_SECRET!);
-      refreshToken = jwt.sign({ 
-        isAdmin: true,
-        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) // 7 days in seconds
-      }, process.env.REFRESH_TOKEN_SECRET!);
+      accessToken = jwt.sign({ isAdmin: true }, process.env.ACCESS_TOKEN_SECRET!, {
+        expiresIn: '1h',
+      });
+      refreshToken = jwt.sign({ isAdmin: true }, process.env.REFRESH_TOKEN_SECRET!, {
+        expiresIn: '7d',
+      });
 
       isAdmin = true;
 
@@ -57,20 +55,19 @@ const signController = async (c: Context) => {
     }else if (process.env.CHEF_ADRESS === r.email && process.env.CHEF_PASS === r.password) {
 
       // Generate JWT token
-      refreshToken = jwt.sign({ 
-        isAdmin: false,
-        exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour in seconds
-      }, process.env.REFRESH_TOKEN_SECRET!);
-      refreshToken = jwt.sign({ 
-        isAdmin: false,
-        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) // 7 days in seconds
-      }, process.env.REFRESH_TOKEN_SECRET!);
+      accessToken = jwt.sign({ isAdmin: false }, process.env.ACCESS_TOKEN_SECRET!, {
+        expiresIn: "1h",
+      });
+      refreshToken = jwt.sign({ isAdmin: false }, process.env.REFRESH_TOKEN_SECRET!, {
+        expiresIn: "7d",
+      });
 
       isAdmin = false;
 
       await db.insert(tokens).values({
         token: refreshToken,
       });
+
 
 
     }else {

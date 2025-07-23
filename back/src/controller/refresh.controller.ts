@@ -41,15 +41,13 @@ const refreshController = async (c: Context) => {
       isAdmin: decoded.isAdmin,
     };
 
-    const newAccessToken = jwt.sign({ 
-      isAdmin: payload.isAdmin,
-      exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour in seconds
-    }, process.env.REFRESH_TOKEN_SECRET!);
+    const newAccessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, {
+      expiresIn: '1h',
+    });
 
-    const newRefreshToken = jwt.sign({ 
-      isAdmin: payload.isAdmin,
-      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) // 7 days in seconds
-    }, process.env.REFRESH_TOKEN_SECRET!);
+    const newRefreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, {
+      expiresIn: '7d',
+    });
 
     // Replace old refresh token in DB
     await db
