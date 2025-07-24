@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -24,6 +24,13 @@ export default function AttendanceHistory({
 }: AttendanceHistoryProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewEmployee, setViewEmployee] = useState<Employee | null>(selectedEmployee || null)
+  const [isAdmin, setIsAdmin] = useState<boolean>(true)
+
+  useEffect(() => {
+    // Check admin status from localStorage
+    const adminStatus = localStorage.getItem('isAdmin')
+    setIsAdmin(adminStatus === 'true')
+  }, [])
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
@@ -61,11 +68,25 @@ export default function AttendanceHistory({
     return employee.attendance![dateStr] || false
   }
 
+  const canEditAttendance = (date: Date) => {
+    if (!isAdmin) {
+      // Non-admin can only edit today's attendance
+      const today = new Date()
+      return formatDate(date) === formatDate(today)
+    }
+    // Admin can edit any date up to today
+    return date <= new Date()
+  }
+
   const toggleAttendance = async (employee: Employee, date: Date) => {
+    // Check if user can edit this date
+    if (!canEditAttendance(date)) {
+      return
+    }
+
     const dateStr = formatDate(date)
     const currentStatus = isPresent(employee, date)
     const newStatus = !currentStatus
-    const accessToken = localStorage.getItem("accessToken")
   
     try {
       const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
@@ -161,8 +182,14 @@ export default function AttendanceHistory({
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
                 Attendance History
+                {!isAdmin && <span className="text-sm text-gray-500">(View Only - Today's Edit Only)</span>}
               </CardTitle>
-              <CardDescription>Track and manage employee attendance for past and current days</CardDescription>
+              <CardDescription>
+                {isAdmin 
+                  ? "Track and manage employee attendance for past and current days"
+                  : "View employee attendance history and update today's attendance only"
+                }
+              </CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-4 w-4" />
@@ -231,23 +258,39 @@ export default function AttendanceHistory({
                   <p className="text-gray-600">{viewEmployee.position}</p>
                   <p className="text-sm text-gray-500">{viewEmployee.phone}</p>
                 </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className="h-4 w-4 text-xs font-semibold flex items-center justify-center">TND</span>
-                    <span>{viewEmployee.dailySalary}/day</span>
+                {/* Only show salary details for admin */}
+                {isAdmin && (
+                  <div className="text-right">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="h-4 w-4 text-xs font-semibold flex items-center justify-center">TND</span>
+                      <span>{viewEmployee.dailySalary}/day</span>
+                    </div>
+                    {(() => {
+                      const stats = getMonthlyStats(viewEmployee, currentDate)
+                      return (
+                        <div className="mt-1">
+                          <p className="text-sm font-medium">Days worked: {stats.daysWorked}</p>
+                          <p className="text-sm font-medium text-green-600">
+                            Monthly pay: TND {stats.monthlyPay.toFixed(2)}
+                          </p>
+                        </div>
+                      )
+                    })()}
                   </div>
-                  {(() => {
-                    const stats = getMonthlyStats(viewEmployee, currentDate)
-                    return (
-                      <div className="mt-1">
-                        <p className="text-sm font-medium">Days worked: {stats.daysWorked}</p>
-                        <p className="text-sm font-medium text-green-600">
-                          Monthly pay: TND {stats.monthlyPay.toFixed(2)}
-                        </p>
-                      </div>
-                    )
-                  })()}
-                </div>
+                )}
+                {/* Show only days worked for non-admin */}
+                {!isAdmin && (
+                  <div className="text-right">
+                    {(() => {
+                      const stats = getMonthlyStats(viewEmployee, currentDate)
+                      return (
+                        <div className="mt-1">
+                          <p className="text-sm font-medium">Days worked: {stats.daysWorked}</p>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
               </div>
 
               {/* Calendar Grid */}
@@ -268,17 +311,27 @@ export default function AttendanceHistory({
                   const isToday = day.toDateString() === today.toDateString()
                   const isPresentDay = isPresent(viewEmployee, day)
                   const isFutureDate = day > today
+                  const canEdit = canEditAttendance(day)
 
                   return (
                     <div
                       key={day.toISOString()}
                       className={`
-                        p-2 border rounded-lg text-center cursor-pointer transition-colors
+                        p-2 border rounded-lg text-center transition-colors
                         ${isToday ? "border-blue-500 bg-blue-50" : "border-gray-200"}
                         ${isPresentDay ? "bg-green-100 border-green-300" : ""}
-                        ${isFutureDate ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}
+                        ${isFutureDate ? "opacity-50" : ""}
+                        ${canEdit && !isFutureDate ? "cursor-pointer hover:bg-gray-50" : "cursor-not-allowed"}
+                        ${!canEdit && !isFutureDate ? "opacity-60" : ""}
                       `}
-                      onClick={() => !isFutureDate && toggleAttendance(viewEmployee, day)}
+                      onClick={() => canEdit && !isFutureDate && toggleAttendance(viewEmployee, day)}
+                      title={
+                        !canEdit && !isFutureDate && !isAdmin 
+                          ? "Only today's attendance can be modified" 
+                          : isFutureDate 
+                          ? "Future date" 
+                          : ""
+                      }
                     >
                       <div className="text-sm font-medium">{day.getDate()}</div>
                       {!isFutureDate && (
@@ -332,7 +385,10 @@ export default function AttendanceHistory({
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <p className="text-sm font-medium">{stats.daysWorked} days worked</p>
-                            <p className="text-sm text-green-600">TND{stats.monthlyPay.toFixed(2)}</p>
+                            {/* Only show salary for admin */}
+                            {isAdmin && (
+                              <p className="text-sm text-green-600">TND{stats.monthlyPay.toFixed(2)}</p>
+                            )}
                           </div>
 
                           <Button variant="outline" size="sm" onClick={() => setViewEmployee(employee)}>
@@ -345,8 +401,8 @@ export default function AttendanceHistory({
                 </div>
               )}
 
-              {/* Monthly Totals */}
-              {employees.length > 0 && (
+              {/* Monthly Totals - Only for admin */}
+              {employees.length > 0 && isAdmin && (
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <h5 className="font-semibold text-blue-900 mb-2">Monthly Totals</h5>
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -359,7 +415,7 @@ export default function AttendanceHistory({
                     <div>
                       <span className="text-blue-700">Total Payroll: </span>
                       <span className="font-medium">
-                      TND
+                      TND 
                         {employees
                           .reduce((sum, emp) => sum + getMonthlyStats(emp, currentDate).monthlyPay, 0)
                           .toFixed(2)}
@@ -368,6 +424,7 @@ export default function AttendanceHistory({
                   </div>
                 </div>
               )}
+
             </div>
           )}
         </CardContent>

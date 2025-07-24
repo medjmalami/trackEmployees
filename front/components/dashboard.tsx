@@ -302,12 +302,13 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                       <Plus className="h-4 w-4 mr-2" />
                       Add Employee
                     </Button>
-                    <Button variant="outline" onClick={() => setShowHistory(true)}>
-                      <Calendar className="h-4 w-4 mr-2" />
-                      View History
-                    </Button>
+
                   </>
                 )}
+                  <Button variant="outline" onClick={() => setShowHistory(true)}>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    View History
+                  </Button>
               </div>
             </div>
           </CardHeader>
@@ -433,7 +434,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         </Card>
       </main>
 
-      {isAdmin && showHistory && (
+      { showHistory && (
         <AttendanceHistory
           employees={employees}
           selectedEmployee={selectedEmployeeHistory}
