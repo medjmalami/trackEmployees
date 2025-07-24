@@ -385,8 +385,9 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                             )}
                           </Button>
 
+                          <div className="flex space-x-2">
                           {isAdmin && (
-                            <div className="flex space-x-2">
+                            <>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -399,30 +400,31 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                                 <Edit className="h-4 w-4 sm:mr-0" />
                                 <span className="sm:hidden ml-2">Edit</span>
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => deleteEmployee(employee.id)}
                                 className="flex-1 sm:flex-none"
                               >
                                 <Trash2 className="h-4 w-4 sm:mr-0" />
                                 <span className="sm:hidden ml-2">Delete</span>
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedEmployeeHistory(employee)
-                                  setShowHistory(true)
-                                }}
-                                title="View Attendance History"
-                                className="flex-1 sm:flex-none"
-                              >
-                                <Calendar className="h-4 w-4 sm:mr-0" />
-                                <span className="sm:hidden ml-2">History</span>
-                              </Button>
-                            </div>
+                            </>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEmployeeHistory(employee)
+                              setShowHistory(true)
+                            }}
+                            title="View Attendance History"
+                            className="flex-1 sm:flex-none"
+                          >
+                            <Calendar className="h-4 w-4 sm:mr-0" />
+                            <span className="sm:hidden ml-2">History</span>
+                          </Button>
+                        </div>
                         </div>
                       </div>
                     </div>
