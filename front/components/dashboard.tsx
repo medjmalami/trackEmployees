@@ -42,8 +42,10 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       }
 
       const data = await response!.json()
+      console.log('Fetched employees data:', data) // Debug log
       setEmployees(Array.isArray(data) ? data : [])
     } catch (error) {
+      console.error('Error fetching employees:', error) // Debug log
       alert('Failed to load employees. Please try again.')
       setEmployees([])
     } finally {
@@ -105,6 +107,8 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
     
+    console.log(`Calculating advances for ${employee.name}:`, employee.advances) // Debug log
+    
     return Object.entries(employee.advances)
       .filter(([date]) => {
         const advanceDate = new Date(date)
@@ -116,7 +120,18 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
 
   // Calculate net monthly pay (salary - advances)
   const calculateNetMonthlyPay = (employee: Employee) => {
-    if (!employee.attendance || !employee.dailySalary) {
+    // Add safety checks
+    if (!employee || !employee.dailySalary) {
+      console.warn('Employee missing required data:', employee)
+      return {
+        grossPay: 0,
+        advances: 0,
+        netPay: 0,
+        daysWorked: 0
+      }
+    }
+
+    if (!employee.attendance) {
       return {
         grossPay: 0,
         advances: 0,
@@ -146,6 +161,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         daysWorked
       }
     } catch (error) {
+      console.error('Error calculating pay for employee:', employee.name, error)
       return {
         grossPay: 0,
         advances: 0,
@@ -383,6 +399,8 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                   const isPresent = getTodayAttendance(employee)
                   const today = new Date().toISOString().split("T")[0]
 
+                  console.log(`Employee ${employee.name} pay info:`, payInfo) // Debug log
+
                   return (
                     <div key={employee.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg bg-white space-y-4 sm:space-y-0">
                       <div className="flex items-center space-x-3 sm:space-x-4">
@@ -402,7 +420,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                           {/* Mobile salary info */}
                           {isAdmin && (
                             <div className="sm:hidden mt-1">
-                              <p className="text-xs text-gray-600">TND {employee.dailySalary}/day</p>
+                              <p className="text-xs text-gray-600">TND {employee.dailySalary || 0}/day</p>
                               <p className="text-xs text-gray-500">Gross: TND {payInfo.grossPay.toFixed(2)}</p>
                               <p className="text-xs text-red-500">Advances: -TND {payInfo.advances.toFixed(2)}</p>
                               <p className="text-xs text-green-600 font-medium">Net: TND {payInfo.netPay.toFixed(2)}</p>
@@ -415,7 +433,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                         {/* Desktop salary info */}
                         {isAdmin && (
                           <div className="hidden sm:block text-right">
-                            <p className="text-sm font-medium">TND {employee.dailySalary}/day</p>
+                            <p className="text-sm font-medium">TND {employee.dailySalary || 0}/day</p>
                             <p className="text-sm text-gray-600">Gross: TND {payInfo.grossPay.toFixed(2)}</p>
                             <p className="text-sm text-red-500">Advances: -TND {payInfo.advances.toFixed(2)}</p>
                             <p className="text-sm text-green-600 font-medium">Net: TND {payInfo.netPay.toFixed(2)}</p>
