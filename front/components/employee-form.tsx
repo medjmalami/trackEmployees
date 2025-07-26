@@ -74,7 +74,6 @@ export default function EmployeeForm({ employee, onSave, onCancel, accessToken }
         onSave(newEmployee)
       }
     } catch (error) {
-      console.error('Error saving employee:', error)
       alert('Failed to save employee. Please try again.')
     } finally {
       setIsSubmitting(false)

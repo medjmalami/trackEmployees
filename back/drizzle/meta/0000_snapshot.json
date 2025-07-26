@@ -1,5 +1,5 @@
 {
-  "id": "13193080-b286-4789-8ec0-0f9d6cee0725",
+  "id": "8aee32f7-0aec-4ae0-9c47-29e2d0156f1a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -41,6 +41,12 @@
         },
         "attendance": {
           "name": "attendance",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "advances": {
+          "name": "advances",
           "type": "json",
           "primaryKey": false,
           "notNull": false

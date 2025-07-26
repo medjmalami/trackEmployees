@@ -5,6 +5,7 @@ CREATE TABLE "employees" (
 	"phone" varchar(100) NOT NULL,
 	"daily_salary" integer NOT NULL,
 	"attendance" json,
+	"advances" json,
 	"date_added" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "employees_name_unique" UNIQUE("name")
 );

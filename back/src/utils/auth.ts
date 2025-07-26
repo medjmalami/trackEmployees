@@ -18,7 +18,6 @@ export const auth = async (c: Context, next: Next): Promise<Response | void> => 
 
     const validation = authReqSchema.safeParse({ token });
     if (!validation.success) {
-      console.log(validation.error);
       return c.json(errorHelper.error(401, 'Token validation failed'));
     }
 
@@ -31,7 +30,6 @@ export const auth = async (c: Context, next: Next): Promise<Response | void> => 
 
     await next();
   } catch (error) {
-    console.log(error);
     return c.json(errorHelper.error(401, 'Unauthorized'));
   }
 };

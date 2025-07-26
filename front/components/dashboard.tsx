@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Users, Calendar, LogOut, Plus, Edit, Trash2, CheckCircle, XCircle, Shield, Menu } from "lucide-react"
+import { Users, Calendar, LogOut, Plus, Edit, Trash2, CheckCircle, XCircle, Shield, Menu, DollarSign, X } from "lucide-react"
 import EmployeeForm from "@/components/employee-form"
+import AdvanceManagement from "@/components/advance-salary"
 import type { Employee } from "@/types/employee"
 import AttendanceHistory from "@/components/attendance-history"
 import { authFetch } from "@/utils/authFetch"
@@ -21,16 +22,17 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
   const [showForm, setShowForm] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [showAdvances, setShowAdvances] = useState(false)
   const [selectedEmployeeHistory, setSelectedEmployeeHistory] = useState<Employee | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const fetchEmployees = async () => {
     setIsLoading(true)
     try {
       const isAdminFromStorage = localStorage.getItem("isAdmin") === "true"
       const endpoint = isAdminFromStorage ? '/getEmployees/admin' : '/getEmployees'
-      
       const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${endpoint}`, {
         method: 'GET',
       })
@@ -42,7 +44,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       const data = await response!.json()
       setEmployees(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Error fetching employees:', error)
       alert('Failed to load employees. Please try again.')
       setEmployees([])
     } finally {
@@ -52,7 +53,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
 
   useEffect(() => {
     fetchEmployees()
-  }, [accessToken])
+  }, [accessToken, refreshTrigger])
 
   const deleteEmployee = async (id: string) => {
     if (!isAdmin) {
@@ -76,7 +77,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
 
       setEmployees(employees.filter((emp) => emp.id !== id))
     } catch (error) {
-      console.error('Error deleting employee:', error)
       alert('Failed to delete employee. Please try again.')
     }
   }
@@ -98,8 +98,32 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
     )
   }
 
-  const calculateMonthlyPay = (employee: Employee) => {
-    if (!isAdmin || !employee.attendance || !employee.dailySalary) return 0
+  // Calculate monthly advances for an employee
+  const calculateMonthlyAdvances = (employee: Employee) => {
+    if (!employee.advances) return 0
+    
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
+    
+    return Object.entries(employee.advances)
+      .filter(([date]) => {
+        const advanceDate = new Date(date)
+        return advanceDate.getMonth() === currentMonth && 
+               advanceDate.getFullYear() === currentYear
+      })
+      .reduce((total, [, amount]) => total + (Number(amount) || 0), 0)
+  }
+
+  // Calculate net monthly pay (salary - advances)
+  const calculateNetMonthlyPay = (employee: Employee) => {
+    if (!employee.attendance || !employee.dailySalary) {
+      return {
+        grossPay: 0,
+        advances: 0,
+        netPay: 0,
+        daysWorked: 0
+      }
+    }
 
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
@@ -112,10 +136,22 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                employee.attendance![date]
       }).length
 
-      return daysWorked * employee.dailySalary
+      const grossPay = daysWorked * employee.dailySalary
+      const advances = calculateMonthlyAdvances(employee)
+      
+      return {
+        grossPay,
+        advances,
+        netPay: grossPay - advances,
+        daysWorked
+      }
     } catch (error) {
-      console.error('Error calculating monthly pay:', error)
-      return 0
+      return {
+        grossPay: 0,
+        advances: 0,
+        netPay: 0,
+        daysWorked: 0
+      }
     }
   }
 
@@ -135,26 +171,31 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       // Add new employee - the API should return the new employee with ID
       setEmployees([...employees, savedEmployee as Employee])
     }
-    
     setShowForm(false)
     setEditingEmployee(null)
-    
     // Refresh the employee list to get the latest data
     fetchEmployees()
   }
 
   // Safe calculations with fallbacks
   const totalEmployees = Array.isArray(employees) ? employees.length : 0
-  const totalMonthlyPayroll = Array.isArray(employees) 
-    ? employees.reduce((sum, emp) => {
+  
+  const payrollStats = Array.isArray(employees) 
+    ? employees.reduce((acc, emp) => {
+        if (!isAdmin) return acc
         try {
-          return sum + calculateMonthlyPay(emp)
+          const pay = calculateNetMonthlyPay(emp)
+          return {
+            totalGrossPay: acc.totalGrossPay + pay.grossPay,
+            totalAdvances: acc.totalAdvances + pay.advances,
+            totalNetPay: acc.totalNetPay + pay.netPay
+          }
         } catch (error) {
-          console.error('Error in payroll calculation:', error)
-          return sum
+          return acc
         }
-      }, 0)
-    : 0
+      }, { totalGrossPay: 0, totalAdvances: 0, totalNetPay: 0 })
+    : { totalGrossPay: 0, totalAdvances: 0, totalNetPay: 0 }
+
   const presentToday = Array.isArray(employees) 
     ? employees.filter((emp) => getTodayAttendance(emp)).length 
     : 0
@@ -173,7 +214,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       // Update local state
       toggleAttendance(id, date)
     } catch (error) {
-      console.error('Error updating presence:', error)
       alert('Failed to update attendance. Please try again.')
     }
   }
@@ -204,7 +244,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                 </div>
               )}
             </div>
-            
             {/* Mobile menu button */}
             <div className="sm:hidden">
               <Button
@@ -215,7 +254,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                 <Menu className="h-4 w-4" />
               </Button>
             </div>
-            
             {/* Desktop logout button */}
             <div className="hidden sm:block">
               <Button variant="outline" onClick={onLogout}>
@@ -224,7 +262,6 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
               </Button>
             </div>
           </div>
-          
           {/* Mobile menu */}
           {isMobileMenuOpen && (
             <div className="sm:hidden border-t py-2">
@@ -242,6 +279,10 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                     <Calendar className="h-4 w-4 mr-2" />
                     View History
                   </Button>
+                  <Button variant="outline" onClick={() => setShowAdvances(true)} className="w-full">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Manage Advances
+                  </Button>
                 </div>
               )}
             </div>
@@ -252,7 +293,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Stats Cards */}
         {isAdmin && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
@@ -274,14 +315,25 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
               </CardContent>
             </Card>
 
-            <Card className="sm:col-span-2 lg:col-span-1">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Monthly Payroll</CardTitle>
+                <CardTitle className="text-sm font-medium">Gross Payroll</CardTitle>
                 <span className="h-4 w-4 text-xs font-semibold flex items-center justify-center">TND</span>
               </CardHeader>
               <CardContent>
-                <div className="text-xl sm:text-2xl font-bold">{totalMonthlyPayroll.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">Current month total</p>
+                <div className="text-xl sm:text-2xl font-bold">{payrollStats.totalGrossPay.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Before advances</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Net Payroll</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl sm:text-2xl font-bold text-green-600">{payrollStats.totalNetPay.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">After advances: -{payrollStats.totalAdvances.toFixed(2)}</p>
               </CardContent>
             </Card>
           </div>
@@ -302,13 +354,16 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                       <Plus className="h-4 w-4 mr-2" />
                       Add Employee
                     </Button>
-
+                    <Button variant="outline" onClick={() => setShowAdvances(true)}>
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Manage Advances
+                    </Button>
                   </>
                 )}
-                  <Button variant="outline" onClick={() => setShowHistory(true)}>
-                    <Calendar className="h-4 w-4 mr-2" />
-                    View History
-                  </Button>
+                <Button variant="outline" onClick={() => setShowHistory(true)}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  View History
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -324,7 +379,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
             ) : (
               <div className="space-y-4">
                 {employees.map((employee) => {
-                  const monthlyPay = calculateMonthlyPay(employee)
+                  const payInfo = calculateNetMonthlyPay(employee)
                   const isPresent = getTodayAttendance(employee)
                   const today = new Date().toISOString().split("T")[0]
 
@@ -344,12 +399,13 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                           <h3 className="font-semibold text-sm sm:text-base truncate">{employee.name}</h3>
                           <p className="text-xs sm:text-sm text-gray-600 truncate">{employee.position}</p>
                           <p className="text-xs sm:text-sm text-gray-500 truncate">{employee.phone}</p>
-                          
                           {/* Mobile salary info */}
                           {isAdmin && (
                             <div className="sm:hidden mt-1">
                               <p className="text-xs text-gray-600">TND {employee.dailySalary}/day</p>
-                              <p className="text-xs text-gray-500">Monthly: TND {monthlyPay.toFixed(2)}</p>
+                              <p className="text-xs text-gray-500">Gross: TND {payInfo.grossPay.toFixed(2)}</p>
+                              <p className="text-xs text-red-500">Advances: -TND {payInfo.advances.toFixed(2)}</p>
+                              <p className="text-xs text-green-600 font-medium">Net: TND {payInfo.netPay.toFixed(2)}</p>
                             </div>
                           )}
                         </div>
@@ -360,7 +416,9 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                         {isAdmin && (
                           <div className="hidden sm:block text-right">
                             <p className="text-sm font-medium">TND {employee.dailySalary}/day</p>
-                            <p className="text-sm text-gray-600">Monthly: TND {monthlyPay.toFixed(2)}</p>
+                            <p className="text-sm text-gray-600">Gross: TND {payInfo.grossPay.toFixed(2)}</p>
+                            <p className="text-sm text-red-500">Advances: -TND {payInfo.advances.toFixed(2)}</p>
+                            <p className="text-sm text-green-600 font-medium">Net: TND {payInfo.netPay.toFixed(2)}</p>
                           </div>
                         )}
 
@@ -386,45 +444,45 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
                           </Button>
 
                           <div className="flex space-x-2">
-                          {isAdmin && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingEmployee(employee)
-                                  setShowForm(true)
-                                }}
-                                className="flex-1 sm:flex-none"
-                              >
-                                <Edit className="h-4 w-4 sm:mr-0" />
-                                <span className="sm:hidden ml-2">Edit</span>
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => deleteEmployee(employee.id)}
-                                className="flex-1 sm:flex-none"
-                              >
-                                <Trash2 className="h-4 w-4 sm:mr-0" />
-                                <span className="sm:hidden ml-2">Delete</span>
-                              </Button>
-                            </>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedEmployeeHistory(employee)
-                              setShowHistory(true)
-                            }}
-                            title="View Attendance History"
-                            className="flex-1 sm:flex-none"
-                          >
-                            <Calendar className="h-4 w-4 sm:mr-0" />
-                            <span className="sm:hidden ml-2">History</span>
-                          </Button>
-                        </div>
+                            {isAdmin && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingEmployee(employee)
+                                    setShowForm(true)
+                                  }}
+                                  className="flex-1 sm:flex-none"
+                                >
+                                  <Edit className="h-4 w-4 sm:mr-0" />
+                                  <span className="sm:hidden ml-2">Edit</span>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => deleteEmployee(employee.id)}
+                                  className="flex-1 sm:flex-none"
+                                >
+                                  <Trash2 className="h-4 w-4 sm:mr-0" />
+                                  <span className="sm:hidden ml-2">Delete</span>
+                                </Button>
+                              </>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedEmployeeHistory(employee)
+                                setShowHistory(true)
+                              }}
+                              title="View Attendance History"
+                              className="flex-1 sm:flex-none"
+                            >
+                              <Calendar className="h-4 w-4 sm:mr-0" />
+                              <span className="sm:hidden ml-2">History</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -436,7 +494,7 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         </Card>
       </main>
 
-      { showHistory && (
+      {showHistory && (
         <AttendanceHistory
           employees={employees}
           selectedEmployee={selectedEmployeeHistory}
@@ -464,6 +522,29 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
         />
       )}
 
+      {showAdvances && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Advance Salary Management</h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowAdvances(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4">
+              <AdvanceManagement 
+                employees={employees}
+                onAdvanceUpdate={() => {
+                  // Trigger a refresh by updating the refresh trigger
+                  setRefreshTrigger(prev => prev + 1)
+                }}
+                isAdmin={isAdmin}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {showForm && isAdmin && (
         <EmployeeForm
           accessToken={accessToken}
@@ -477,4 +558,4 @@ export default function Dashboard({ onLogout, isAdmin, accessToken }: DashboardP
       )}
     </div>
   )
-          }
+}

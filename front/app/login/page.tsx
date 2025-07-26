@@ -46,7 +46,6 @@ export default function LoginPage() {
         return { success: false, message: errorData.message || "Login failed" }
       }
     } catch (error) {
-      console.error("Login error:", error)
       return { success: false, message: "Network error. Please try again." }
     }
   }

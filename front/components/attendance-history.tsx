@@ -87,7 +87,6 @@ export default function AttendanceHistory({
     const dateStr = formatDate(date)
     const currentStatus = isPresent(employee, date)
     const newStatus = !currentStatus
-  
     try {
       const response = await authFetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/changePresence`, {
         method: "POST",
@@ -97,14 +96,11 @@ export default function AttendanceHistory({
           presence: newStatus,
         }),
       })
-  
       if (!response!.ok) {
         throw new Error("Failed to update attendance")
       }
-  
       // Call parent update
       onUpdateAttendance(employee.id, dateStr, newStatus)
-  
       // ✅ Update local state to reflect change immediately
       setViewEmployee((prev) => {
         if (!prev) return prev
@@ -117,11 +113,25 @@ export default function AttendanceHistory({
         }
       })
     } catch (error) {
-      console.error("Error updating attendance:", error)
       alert("Failed to update attendance. Please try again.")
     }
   }
-  
+
+  // Calculate monthly advances for an employee
+  const getMonthlyAdvances = (employee: Employee, date: Date) => {
+    if (!employee.advances) return 0
+    
+    const year = date.getFullYear()
+    const month = date.getMonth()
+
+    return Object.entries(employee.advances)
+      .filter(([dateStr]) => {
+        const [yearStr, monthStr] = dateStr.split('-')
+        const advanceDate = new Date(parseInt(yearStr), parseInt(monthStr) - 1, 1)
+        return advanceDate.getFullYear() === year && advanceDate.getMonth() === month
+      })
+      .reduce((total, [, amount]) => total + (Number(amount) || 0), 0)
+  }
 
   const getMonthlyStats = (employee: Employee, date: Date) => {
     const year = date.getFullYear()
@@ -134,9 +144,11 @@ export default function AttendanceHistory({
       return workDate.getFullYear() === year && workDate.getMonth() === month && employee.attendance![dateStr]
     }).length
 
-    const monthlyPay = daysWorked * employee.dailySalary!
+    const grossPay = daysWorked * employee.dailySalary!
+    const advances = getMonthlyAdvances(employee, date)
+    const netPay = grossPay - advances
 
-    return { daysWorked, monthlyPay }
+    return { daysWorked, grossPay, advances, netPay }
   }
 
   const navigateMonth = (direction: "prev" | "next") => {
@@ -258,20 +270,26 @@ export default function AttendanceHistory({
                   <p className="text-gray-600">{viewEmployee.position}</p>
                   <p className="text-sm text-gray-500">{viewEmployee.phone}</p>
                 </div>
-                {/* Only show salary details for admin */}
+                {/* Salary details with advance integration - Only show for admin */}
                 {isAdmin && (
                   <div className="text-right">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                       <span className="h-4 w-4 text-xs font-semibold flex items-center justify-center">TND</span>
                       <span>{viewEmployee.dailySalary}/day</span>
                     </div>
                     {(() => {
                       const stats = getMonthlyStats(viewEmployee, currentDate)
                       return (
-                        <div className="mt-1">
+                        <div className="space-y-1">
                           <p className="text-sm font-medium">Days worked: {stats.daysWorked}</p>
+                          <p className="text-sm text-gray-600">
+                            Gross pay: TND {stats.grossPay.toFixed(2)}
+                          </p>
+                          <p className="text-sm text-red-500">
+                            Advances: -TND {stats.advances.toFixed(2)}
+                          </p>
                           <p className="text-sm font-medium text-green-600">
-                            Monthly pay: TND {stats.monthlyPay.toFixed(2)}
+                            Net pay: TND {stats.netPay.toFixed(2)}
                           </p>
                         </div>
                       )
@@ -385,9 +403,13 @@ export default function AttendanceHistory({
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <p className="text-sm font-medium">{stats.daysWorked} days worked</p>
-                            {/* Only show salary for admin */}
+                            {/* Only show salary details for admin */}
                             {isAdmin && (
-                              <p className="text-sm text-green-600">TND{stats.monthlyPay.toFixed(2)}</p>
+                              <div className="space-y-1">
+                                <p className="text-sm text-gray-600">Gross: TND {stats.grossPay.toFixed(2)}</p>
+                                <p className="text-sm text-red-500">Advances: -TND {stats.advances.toFixed(2)}</p>
+                                <p className="text-sm text-green-600">Net: TND {stats.netPay.toFixed(2)}</p>
+                              </div>
                             )}
                           </div>
 
@@ -405,7 +427,7 @@ export default function AttendanceHistory({
               {employees.length > 0 && isAdmin && (
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <h5 className="font-semibold text-blue-900 mb-2">Monthly Totals</h5>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                     <div>
                       <span className="text-blue-700">Total Days Worked: </span>
                       <span className="font-medium">
@@ -413,18 +435,32 @@ export default function AttendanceHistory({
                       </span>
                     </div>
                     <div>
-                      <span className="text-blue-700">Total Payroll: </span>
+                      <span className="text-blue-700">Gross Payroll: </span>
                       <span className="font-medium">
-                      TND 
-                        {employees
-                          .reduce((sum, emp) => sum + getMonthlyStats(emp, currentDate).monthlyPay, 0)
+                        TND {employees
+                          .reduce((sum, emp) => sum + getMonthlyStats(emp, currentDate).grossPay, 0)
+                          .toFixed(2)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-blue-700">Total Advances: </span>
+                      <span className="font-medium text-red-600">
+                        -TND {employees
+                          .reduce((sum, emp) => sum + getMonthlyStats(emp, currentDate).advances, 0)
+                          .toFixed(2)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-blue-700">Net Payroll: </span>
+                      <span className="font-medium text-green-600">
+                        TND {employees
+                          .reduce((sum, emp) => sum + getMonthlyStats(emp, currentDate).netPay, 0)
                           .toFixed(2)}
                       </span>
                     </div>
                   </div>
                 </div>
               )}
-
             </div>
           )}
         </CardContent>

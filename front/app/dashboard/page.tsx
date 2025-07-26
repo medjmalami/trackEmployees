@@ -67,7 +67,6 @@ export default function DashboardPage() {
     localStorage.removeItem("isAdmin");
     clearAuthData()
     window.location.href = "/login";
-    console.error('Logout error:', error);
   }
 };
 

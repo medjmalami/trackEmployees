@@ -7,12 +7,15 @@ export const employees = pgTable("employees", {
   phone: varchar("phone", { length: 100 }).notNull(),
   dailySalary: integer("daily_salary").notNull(),
   attendance: json("attendance").$type<Record<string, boolean>>(),
+  advances: json("advances").$type<Record<string, number>>(),
   dateAdded: timestamp("date_added").defaultNow().notNull(),
 });
 
 export const tokens = pgTable("tokens", {
-    token: varchar("token", { length: 500 }).primaryKey(),
+  token: varchar("token", { length: 500 }).primaryKey(),
 });
 
-export type Employee = typeof employees;
-export type Token = typeof tokens;
+// Type exports
+export type Employee = typeof employees.$inferSelect;
+export type NewEmployee = typeof employees.$inferInsert;
+export type Token = typeof tokens.$inferSelect;

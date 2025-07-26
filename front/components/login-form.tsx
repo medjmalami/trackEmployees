@@ -24,14 +24,11 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     setError("")
     setIsLoading(true)
     try {
-      console.log("Calling onLogin...")
       const result = await onLogin(email, password)
-      console.log("onLogin result:", result)
       if (!result.success) {
         setError(result.message)
       }
     } catch (error) {
-      console.error("Login error:", error)
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)

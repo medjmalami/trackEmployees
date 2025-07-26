@@ -1,8 +1,8 @@
 import { errorHelper } from "../../utils/errorHelper";
 import { db } from "../../db/index";
 import type { Context } from "hono";
-import type { AddEmployeeReq, AddEmployeeRes } from "../../utils/addEmployeeTypes";
-import { addEmployeeReqSchema, addEmployeeResSchema } from "../../utils/addEmployeeTypes";
+import type { AddEmployeeReq} from "../../utils/addEmployeeTypes";
+import { addEmployeeReqSchema} from "../../utils/addEmployeeTypes";
 import { employees } from "../../db/schema";
 
 const addEmployeeController = async (c: Context) => {
@@ -35,6 +35,7 @@ const addEmployeeController = async (c: Context) => {
       phone : r.phone,
       dailySalary : r.dailySalary,
       attendance: {},
+      advances: {},
       dateAdded: new Date(),
     }).returning();
 
@@ -45,6 +46,7 @@ const addEmployeeController = async (c: Context) => {
       phone : result.phone,
       dailySalary : result.dailySalary,
       attendance : result.attendance,
+      advances : result.advances,
       message: 'Employee added successfully',
       success: true,
     });

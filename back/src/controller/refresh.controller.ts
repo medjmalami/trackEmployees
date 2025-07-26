@@ -68,7 +68,6 @@ const refreshController = async (c: Context) => {
       success: true,
     });
   } catch (error) {
-    console.error("Refresh token error:", error);
     return c.json(errorHelper.error(500, "Internal Server Error"), 500); // ✅ Include correct status
   }
 };

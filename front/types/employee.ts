@@ -5,4 +5,5 @@ export interface Employee {
   phone: string
   dailySalary?: number
   attendance?: Record<string, boolean> // date -> present/absent
+  advances?: Record<string, number>
 }
